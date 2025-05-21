@@ -10,6 +10,7 @@
     .container { max-width: 800px; margin: auto; }
     .form-section { margin-top: 2rem; padding: 2rem; background: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
     .hidden { display: none; }
+    #status { margin-top: 1rem; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -18,9 +19,10 @@
 
     <div id="login-section" class="form-section">
       <h4>Iniciar Sessão</h4>
-      <input type="email" id="email" class="form-control mb-2" placeholder="E-mail" value="diogo@lega.pt">
-      <input type="password" id="password" class="form-control mb-2" placeholder="Palavra-passe" value="diogolega">
-      <button onclick="login()" class="btn btn-primary">Entrar</button>
+      <input type="email" id="email" class="form-control mb-2" placeholder="E-mail">
+      <input type="password" id="password" class="form-control mb-2" placeholder="Palavra-passe">
+      <button id="loginBtn" class="btn btn-primary">Entrar</button>
+      <div id="status" class="alert alert-info mt-3">Por favor, introduza as suas credenciais.</div>
     </div>
 
     <div id="admin-section" class="form-section hidden">
@@ -44,31 +46,45 @@
       <label>Galeria (várias imagens):</label>
       <input type="file" id="galeria" class="form-control mb-2" multiple>
 
-      <button onclick="adicionarStock()" class="btn btn-success">Guardar Veículo</button>
+      <button id="guardarBtn" class="btn btn-success">Guardar Veículo</button>
       <button onclick="logout()" class="btn btn-secondary float-end">Terminar Sessão</button>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script>
-    const supabase = supabase.createClient(
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
       'https://dbguanjgjgardlznhxiz.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiZ3VhbmpnamdhcmRsem5oeGl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NjUwMDYsImV4cCI6MjA2MTM0MTAwNn0.L8zWCBVs8h-XK85uJouB9E_WDuAdZkaWE95BeBBGQ0I'
     );
 
-    async function login() {
+    const status = document.getElementById('status');
+    const loginBtn = document.getElementById('loginBtn');
+    const guardarBtn = document.getElementById('guardarBtn');
+    const loginSection = document.getElementById('login-section');
+    const adminSection = document.getElementById('admin-section');
+
+    loginBtn.addEventListener('click', async () => {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        alert('Erro ao iniciar sessão: ' + error.message);
-      } else {
-        document.getElementById('login-section').classList.add('hidden');
-        document.getElementById('admin-section').classList.remove('hidden');
-      }
-    }
 
-    async function adicionarStock() {
+      status.innerText = 'A autenticar...';
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        status.innerText = 'Erro: ' + error.message;
+        status.classList.replace('alert-info', 'alert-danger');
+      } else {
+        status.innerText = 'Sessão iniciada com sucesso!';
+        status.classList.replace('alert-info', 'alert-success');
+        loginSection.classList.add('hidden');
+        adminSection.classList.remove('hidden');
+      }
+    });
+
+    guardarBtn.addEventListener('click', async () => {
       const dados = {
         marca: document.getElementById('marca').value,
         modelo: document.getElementById('modelo').value,
@@ -81,13 +97,13 @@
         descricao: document.getElementById('descricao').value
       };
 
-      const { data, error } = await supabase.from('stock').insert([dados]);
+      const { error } = await supabase.from('stock').insert([dados]);
       if (error) {
         alert('Erro ao guardar: ' + error.message);
       } else {
         alert('Veículo adicionado com sucesso!');
       }
-    }
+    });
 
     function logout() {
       supabase.auth.signOut();
