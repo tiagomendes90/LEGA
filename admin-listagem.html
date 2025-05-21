@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão de Stock | LEGA</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body { background-color: #f8f9fa; padding: 2rem; }
+    .container { max-width: 1100px; margin: auto; }
+    .hidden { display: none; }
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 class="text-center mb-4">Painel de Gestão de Stock - LEGA</h2>
+
+    <table class="table table-striped table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Marca</th>
+          <th>Modelo</th>
+          <th>Ano</th>
+          <th>Estado</th>
+          <th>Preço</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-stock">
+        <!-- Linhas inseridas dinamicamente -->
+      </tbody>
+    </table>
+
+    <div id="status" class="alert alert-info text-center">A carregar veículos...</div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://dbguanjgjgardlznhxiz.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiZ3VhbmpnamdhcmRsem5oeGl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NjUwMDYsImV4cCI6MjA2MTM0MTAwNn0.L8zWCBVs8h-XK85uJouB9E_WDuAdZkaWE95BeBBGQ0I'
+    );
+
+    const tabela = document.getElementById('tabela-stock');
+    const status = document.getElementById('status');
+
+    async function carregarStock() {
+      const { data, error } = await supabase.from('stock_novo').select('*').order('data_insercao', { ascending: false });
+
+      if (error) {
+        status.classList.replace('alert-info', 'alert-danger');
+        status.innerText = 'Erro ao carregar dados: ' + error.message;
+        return;
+      }
+
+      if (data.length === 0) {
+        status.innerText = 'Nenhum veículo encontrado.';
+        return;
+      }
+
+      status.classList.add('hidden');
+
+      data.forEach(item => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+          <td>${item.marca || ''}</td>
+          <td>${item.modelo || ''}</td>
+          <td>${item.ano || ''}</td>
+          <td>${item.estado || ''}</td>
+          <td>${item.preco ? item.preco + ' €' : ''}</td>
+          <td>
+            <button class="btn btn-sm btn-warning me-1" onclick="editar('${item.id}')">Editar</button>
+            <button class="btn btn-sm btn-danger me-1" onclick="remover('${item.id}')">Remover</button>
+            <button class="btn btn-sm btn-secondary" onclick="marcarVendido('${item.id}')">Vendido</button>
+          </td>
+        `;
+
+        tabela.appendChild(row);
+      });
+    }
+
+    // Funções futuras (a implementar)
+    window.editar = (id) => {
+      alert('Função "editar" ainda não implementada. ID: ' + id);
+    };
+
+    window.remover = (id) => {
+      alert('Função "remover" ainda não implementada. ID: ' + id);
+    };
+
+    window.marcarVendido = (id) => {
+      alert('Função "marcar como vendido" ainda não implementada. ID: ' + id);
+    };
+
+    carregarStock();
+  </script>
+</body>
+</html>
