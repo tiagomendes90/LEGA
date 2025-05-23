@@ -26,9 +26,10 @@
       <div id="status" class="alert alert-info mt-3">Por favor, introduza as suas credenciais.</div>
     </div>
 
-    <!-- Inserção de novo stock -->
+    <!-- Inserção e edição de stock -->
     <div id="admin-section" class="form-section hidden">
-      <h4>Adicionar Novo Veículo</h4>
+      <h4 id="form-title">Adicionar Novo Veículo</h4>
+      <input type="hidden" id="registro-id">
       <input type="text" id="marca" class="form-control mb-2" placeholder="Marca">
       <input type="text" id="modelo" class="form-control mb-2" placeholder="Modelo">
       <input type="text" id="tipo" class="form-control mb-2" placeholder="Tipo">
@@ -46,7 +47,7 @@
       <label>Galeria (várias imagens):</label>
       <input type="file" id="galeria" class="form-control mb-2" multiple>
       <button id="guardarBtn" class="btn btn-success">Guardar Veículo</button>
-      <button onclick="logout()" class="btn btn-secondary float-end">Terminar Sessão</button>
+      <button onclick="resetForm()" class="btn btn-secondary float-end">Cancelar / Limpar</button>
     </div>
 
     <!-- Listagem -->
@@ -83,6 +84,8 @@
     const status = document.getElementById('status');
     const statusListagem = document.getElementById('status-listagem');
 
+    const campos = ['id', 'marca', 'modelo', 'tipo', 'ano', 'kms', 'potencia', 'estado', 'preco', 'descricao'];
+
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
@@ -104,6 +107,7 @@
     });
 
     document.getElementById('guardarBtn').addEventListener('click', async () => {
+      const id = document.getElementById('registro-id').value;
       const dados = {
         marca: document.getElementById('marca').value,
         modelo: document.getElementById('modelo').value,
@@ -113,14 +117,23 @@
         potencia: document.getElementById('potencia').value,
         estado: document.getElementById('estado').value,
         preco: parseFloat(document.getElementById('preco').value),
-        descricao: document.getElementById('descricao').value
+        descricao: document.getElementById('descricao').value,
+        vendido_em: document.getElementById('estado').value === 'vendido' ? new Date().toISOString() : null,
+        disponivel: document.getElementById('estado').value === 'disponível'
       };
 
-      const { error } = await supabase.from('stock_novo').insert([dados]);
-      if (error) {
-        alert('Erro ao guardar: ' + error.message);
+      let resultado;
+      if (id) {
+        resultado = await supabase.from('stock_novo').update(dados).eq('id', id);
       } else {
-        alert('Veículo adicionado com sucesso!');
+        resultado = await supabase.from('stock_novo').insert([dados]);
+      }
+
+      if (resultado.error) {
+        alert('Erro ao guardar: ' + resultado.error.message);
+      } else {
+        alert('Veículo guardado com sucesso!');
+        resetForm();
         carregarStock();
       }
     });
@@ -161,23 +174,55 @@
       });
     }
 
+    window.editar = async (id) => {
+      const { data } = await supabase.from('stock_novo').select('*').eq('id', id).single();
+      if (!data) return;
+      document.getElementById('registro-id').value = data.id;
+      document.getElementById('marca').value = data.marca || '';
+      document.getElementById('modelo').value = data.modelo || '';
+      document.getElementById('tipo').value = data.tipo || '';
+      document.getElementById('ano').value = data.ano || '';
+      document.getElementById('kms').value = data.kms || '';
+      document.getElementById('potencia').value = data.potencia || '';
+      document.getElementById('estado').value = data.estado || 'disponível';
+      document.getElementById('preco').value = data.preco || '';
+      document.getElementById('descricao').value = data.descricao || '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.remover = async (id) => {
+      if (confirm('Tens a certeza que queres remover este veículo?')) {
+        const { error } = await supabase.from('stock_novo').delete().eq('id', id);
+        if (error) {
+          alert('Erro ao remover: ' + error.message);
+        } else {
+          alert('Removido com sucesso.');
+          carregarStock();
+        }
+      }
+    };
+
+    window.marcarVendido = async (id) => {
+      const { error } = await supabase.from('stock_novo').update({ estado: 'vendido', vendido_em: new Date().toISOString(), disponivel: false }).eq('id', id);
+      if (error) {
+        alert('Erro ao atualizar: ' + error.message);
+      } else {
+        alert('Veículo marcado como vendido.');
+        carregarStock();
+      }
+    };
+
+    function resetForm() {
+      document.getElementById('form-title').innerText = 'Adicionar Novo Veículo';
+      document.getElementById('registro-id').value = '';
+      adminSection.querySelectorAll('input, textarea').forEach(el => el.value = '');
+      document.getElementById('estado').value = 'disponível';
+    }
+
     function logout() {
       supabase.auth.signOut();
       location.reload();
     }
-
-    // Funções por implementar
-    window.editar = (id) => {
-      alert('Função "editar" ainda não implementada. ID: ' + id);
-    };
-
-    window.remover = (id) => {
-      alert('Função "remover" ainda não implementada. ID: ' + id);
-    };
-
-    window.marcarVendido = (id) => {
-      alert('Função "marcar como vendido" ainda não implementada. ID: ' + id);
-    };
   </script>
 </body>
 </html>
